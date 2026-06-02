@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Color Match! 🎨</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --p1: #FF6EB4;
+    --p2: #3A86FF;
+    --card-back: #6C63FF;
+    --bg: #FFF9F0;
+    --shadow: 0 4px 16px rgba(0,0,0,0.11);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: 'Nunito Sans', sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 15% 15%, rgba(255,110,180,0.08) 0%, transparent 50%),
+                      radial-gradient(circle at 85% 85%, rgba(58,134,255,0.08) 0%, transparent 50%);
+  }
+
+  /* Every screen fills the viewport exactly — no scroll */
+  .screen {
+    display: none;
+    width: 100%; height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .screen.active { display: flex; }
+
+  /* ════════════════════
+     SETUP
+  ════════════════════ */
+  #setup { gap: 16px; text-align: center; padding: 20px; }
+
+  .game-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 900; line-height: 1.1;
+    background: linear-gradient(135deg, var(--p1) 0%, var(--card-back) 50%, var(--p2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .subtitle { font-size: 0.9rem; color: #888; font-weight: 600; }
+
+  .color-preview { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 320px; }
+  .color-dot { width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.15); flex-shrink: 0; }
+
+  .player-inputs { display: flex; gap: 14px; width: 100%; max-width: 620px; }
+  .player-input-wrap {
+    flex: 1; background: white; border-radius: var(--radius); padding: 14px 16px;
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; border: 3px solid transparent;
+  }
+  .player-input-wrap.p1-wrap { border-color: var(--p1); }
+  .player-input-wrap.p2-wrap { border-color: var(--p2); }
+  .player-emoji { font-size: 1.8rem; line-height: 1; flex-shrink: 0; }
+  .player-input-inner { flex: 1; }
+  .player-label { font-family: 'Nunito', sans-serif; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .p1-wrap .player-label { color: var(--p1); }
+  .p2-wrap .player-label { color: var(--p2); }
+  .player-input-wrap input { width: 100%; border: none; outline: none; font-family: 'Nunito', sans-serif; font-size: 1.05rem; font-weight: 700; color: #222; background: transparent; }
+  .player-input-wrap input::placeholder { color: #ccc; font-weight: 600; }
+
+  .start-btn {
+    font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900;
+    padding: 14px 44px; background: linear-gradient(135deg, #6C63FF, #FF6EB4);
+    color: white; border: none; border-radius: 50px; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(108,99,255,0.35); transition: transform 0.12s;
+  }
+  .start-btn:active { transform: scale(0.96); }
+
+  /* ════════════════════
+     JANKEN
+  ════════════════════ */
+  #janken { gap: 20px; text-align: center; padding: 20px; }
+  .janken-heading { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: clamp(1.4rem, 3.5vw, 2.2rem); color: #333; line-height: 1.2; }
+  .janken-heading span { display: block; font-size: clamp(0.9rem, 2vw, 1.2rem); color: #6C63FF; margin-top: 4px; }
+  .janken-hands { display: flex; gap: 28px; justify-content: center; align-items: flex-end; font-size: clamp(3.5rem, 9vw, 6rem); line-height: 1; }
+  .janken-hand { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .janken-label { font-family: 'Nunito', sans-serif; font-size: 0.7rem; font-weight: 800; color: #bbb; text-transform: uppercase; letter-spacing: 0.1em; }
+  @keyframes handBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .janken-hand .emoji { animation: handBounce 1.4s ease-in-out infinite; display: block; }
+  .janken-hand:nth-child(2) .emoji { animation-delay: 0.2s; }
+  .janken-hand:nth-child(3) .emoji { animation-delay: 0.4s; }
+  .decided-btn {
+    font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900;
+    padding: 14px 36px; background: linear-gradient(135deg, #FF7F11, #FF3A3A);
+    color: white; border: none; border-radius: 50px; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255,127,17,0.35); transition: transform 0.12s;
+  }
+  .decided-btn:active { transform: scale(0.96); }
+
+  /* ════════════════════
+     PICKER
+  ════════════════════ */
+  #picker { gap: 22px; text-align: center; padding: 20px; }
+  .picker-heading { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: clamp(1.2rem, 3vw, 1.9rem); color: #333; line-height: 1.3; }
+  .picker-heading span { display: block; font-size: clamp(0.8rem, 1.8vw, 1rem); color: #999; font-weight: 700; margin-top: 4px; }
+  .picker-btns { display: flex; gap: 18px; width: 100%; max-width: 620px; }
+  .picker-btn {
+    flex: 1; font-family: 'Nunito', sans-serif; font-size: clamp(1.1rem, 3vw, 1.6rem); font-weight: 900;
+    padding: 20px 16px; border: none; border-radius: var(--radius); cursor: pointer;
+    color: white; transition: transform 0.15s; box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .picker-btn.pb1 { background: var(--p1); box-shadow: 0 6px 20px rgba(255,110,180,0.35); }
+  .picker-btn.pb2 { background: var(--p2); box-shadow: 0 6px 20px rgba(58,134,255,0.35); }
+  .picker-btn:active { transform: scale(0.96); }
+
+  /* ════════════════════
+     GAME — locked to 100vh, no scroll
+  ════════════════════ */
+  #game {
+    padding: 10px 12px 10px;
+    justify-content: flex-start;
+    gap: 8px;
+    height: 100%;
+  }
+
+  .score-bar {
+    display: flex; align-items: stretch; width: 100%; max-width: 900px;
+    border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);
+    flex-shrink: 0;
+  }
+  .player-panel { flex: 1; padding: 6px 14px; display: flex; align-items: center; gap: 10px; }
+  .player-panel.p1-panel { background: var(--p1); }
+  .player-panel.p2-panel { background: var(--p2); }
+  .player-panel.inactive { opacity: 0.52; }
+  .panel-left { display: flex; flex-direction: column; gap: 0; flex: 1; }
+  .panel-name { font-family: 'Nunito', sans-serif; font-size: clamp(0.8rem, 1.8vw, 1rem); font-weight: 900; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .panel-turn { font-size: 0.62rem; font-weight: 700; color: rgba(255,255,255,0.82); text-transform: uppercase; letter-spacing: 0.06em; }
+  .panel-score { font-family: 'Nunito', sans-serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 900; color: white; line-height: 1; flex-shrink: 0; }
+
+  .score-middle { background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 14px; gap: 1px; }
+  .vs-text { font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 900; color: #6C63FF; }
+  .pairs-left { font-size: 0.58rem; color: #aaa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; white-space: nowrap; }
+
+  .prompt-box {
+    background: white; border-radius: 12px; padding: 6px 16px;
+    width: 100%; max-width: 900px; box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  .prompt-question { font-family: 'Nunito', sans-serif; font-size: clamp(0.72rem, 1.6vw, 0.9rem); font-weight: 800; color: #6C63FF; text-align: center; }
+  .prompt-sep { color: #ddd; font-size: 0.8rem; }
+  .prompt-instruction { font-size: clamp(0.65rem, 1.4vw, 0.8rem); color: #aaa; font-weight: 600; text-align: center; }
+
+  /* Card grid — fills remaining height */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 8px;
+    width: 100%; max-width: 900px;
+    flex: 1;
+    min-height: 0; /* critical: lets flex-child shrink */
+  }
+
+  .card {
+    border-radius: 12px; cursor: pointer; position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+    user-select: none; -webkit-user-select: none;
+    min-height: 0;
+  }
+  .card.flipped { transform: rotateY(180deg); }
+  .card.matched { cursor: default; }
+  .card.matched .card-front { background: #E8F5E9 !important; border: none !important; }
+  .card.matched .card-color-circle { opacity: 0.25; box-shadow: none; }
+  .card.matched .card-color-name { opacity: 0.3; color: #555 !important; }
+  .card.matched .card-check { display: flex; }
+
+  .card-face {
+    position: absolute; inset: 0; border-radius: 12px;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .card-back { background: var(--card-back); background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 60%); }
+  .card-back-pattern { font-size: clamp(1rem, 3vw, 1.6rem); line-height: 1; }
+  .card-back-label { font-family: 'Nunito', sans-serif; font-size: clamp(0.42rem, 1.1vw, 0.62rem); font-weight: 900; color: rgba(255,255,255,0.55); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+
+  .card-front { transform: rotateY(180deg); gap: 4px; box-shadow: inset 0 -3px 7px rgba(0,0,0,0.1); }
+  .card-color-circle {
+    width: clamp(22px, 4.5vw, 46px); height: clamp(22px, 4.5vw, 46px);
+    border-radius: 50%; box-shadow: inset 0 -2px 5px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.13); flex-shrink: 0;
+  }
+  .card-color-name { font-family: 'Nunito', sans-serif; font-size: clamp(0.48rem, 1.2vw, 0.78rem); font-weight: 900; text-transform: capitalize; text-align: center; padding: 0 3px; }
+
+  .card-check { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; flex-direction: column; gap: 1px; }
+  .card-check-icon { font-size: clamp(1rem, 2.8vw, 1.8rem); line-height: 1; }
+  .card-check-label { font-family: 'Nunito', sans-serif; font-size: clamp(0.38rem, 1vw, 0.54rem); font-weight: 900; color: #2DC653; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  @keyframes shake { 0%,100%{transform:rotateY(180deg) translateX(0)} 20%{transform:rotateY(180deg) translateX(-5px)} 40%{transform:rotateY(180deg) translateX(5px)} 60%{transform:rotateY(180deg) translateX(-5px)} 80%{transform:rotateY(180deg) translateX(5px)} }
+  .card.shake { animation: shake 0.42s ease; }
+  @keyframes matchPop { 0%{transform:rotateY(180deg) scale(1)} 40%{transform:rotateY(180deg) scale(1.1)} 100%{transform:rotateY(180deg) scale(1)} }
+  .card.match-pop { animation: matchPop 0.32s ease; }
+
+  /* ════════════════════
+     WIN SCREEN
+  ════════════════════ */
+  #win {
+    padding: 16px 16px 16px;
+    justify-content: flex-start;
+    gap: 10px;
+    height: 100%;
+  }
+
+  .win-confetti {
+    font-size: 1.6rem; letter-spacing: 0.2em; line-height: 1; flex-shrink: 0;
+    animation: confettiBounce 1.8s ease-in-out infinite;
+  }
+  @keyframes confettiBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+  .result-panels {
+    display: flex; gap: 14px; width: 100%; max-width: 900px;
+    flex: 1; min-height: 0;
+  }
+
+  .result-panel {
+    flex: 1; border-radius: var(--radius); box-shadow: var(--shadow);
+    display: flex; flex-direction: column; position: relative; overflow: visible; min-height: 0;
+  }
+
+  .crown-wrap {
+    position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
+    font-size: 2rem; line-height: 1; display: none;
+    filter: drop-shadow(0 2px 6px rgba(255,200,0,0.6));
+    animation: crownShine 1.2s ease-in-out infinite alternate; z-index: 10;
+  }
+  .crown-wrap.visible { display: block; }
+  @keyframes crownShine {
+    0%  { filter: drop-shadow(0 2px 6px rgba(255,200,0,0.4)) brightness(1); transform: translateX(-50%) rotate(-6deg) scale(1); }
+    100%{ filter: drop-shadow(0 4px 14px rgba(255,200,0,0.9)) brightness(1.25); transform: translateX(-50%) rotate(6deg) scale(1.13); }
+  }
+
+  .result-panel-header {
+    padding: 10px 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; flex-shrink: 0;
+  }
+  .result-panel.rp1 .result-panel-header { background: var(--p1); }
+  .result-panel.rp2 .result-panel-header { background: var(--p2); }
+
+  .result-player-name {
+    font-family: 'Nunito', sans-serif; font-size: clamp(0.9rem, 2.5vw, 1.3rem); font-weight: 900;
+    color: white; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+  .how-many-q {
+    font-family: 'Nunito', sans-serif; font-size: clamp(0.55rem, 1.3vw, 0.72rem); font-weight: 800;
+    color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.14); border-radius: 5px; padding: 2px 8px;
+  }
+
+  .cards-body {
+    background: white; border-radius: 0 0 var(--radius) var(--radius);
+    padding: 8px; flex: 1; overflow-y: auto; min-height: 0;
+  }
+
+  .won-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+    gap: 6px;
+  }
+
+  .won-card {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 4px; border-radius: 10px; background: #fafafa; border: 1.5px solid #eee;
+    animation: cardPop 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes cardPop { 0%{opacity:0;transform:scale(0.5) rotate(-8deg)} 100%{opacity:1;transform:scale(1) rotate(0)} }
+
+  .won-circle {
+    border-radius: 50%; box-shadow: inset 0 -2px 5px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12);
+    width: clamp(28px, 4vw, 42px); height: clamp(28px, 4vw, 42px); flex-shrink: 0;
+  }
+  .won-name { font-family: 'Nunito', sans-serif; font-size: clamp(0.48rem, 1.1vw, 0.66rem); font-weight: 900; text-transform: capitalize; text-align: center; color: #555; line-height: 1.1; }
+  .no-cards-msg { font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 700; color: #ccc; text-align: center; padding: 16px 0; }
+
+  .play-again-btn {
+    font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 900;
+    padding: 12px 36px; background: linear-gradient(135deg, #2DC653, #3A86FF);
+    color: white; border: none; border-radius: 50px; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(45,198,83,0.28); transition: transform 0.12s; flex-shrink: 0;
+  }
+  .play-again-btn:active { transform: scale(0.96); }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup" class="screen active">
+  <div>
+    <div class="game-title">Color Match! 🎨</div>
+    <div class="subtitle">A two-player card matching game</div>
+  </div>
+  <div class="color-preview">
+    <div class="color-dot" style="background:#3A86FF"></div>
+    <div class="color-dot" style="background:#FF3A3A"></div>
+    <div class="color-dot" style="background:#FFD60A"></div>
+    <div class="color-dot" style="background:#2DC653"></div>
+    <div class="color-dot" style="background:#8B5E3C"></div>
+    <div class="color-dot" style="background:#8B5CF6"></div>
+    <div class="color-dot" style="background:#FF7F11"></div>
+    <div class="color-dot" style="background:#FF6EB4"></div>
+    <div class="color-dot" style="background:#1a1a1a"></div>
+    <div class="color-dot" style="background:#e8e8e8;border:1px solid #ccc"></div>
+  </div>
+  <div class="player-inputs">
+    <div class="player-input-wrap p1-wrap">
+      <div class="player-emoji">🌸</div>
+      <div class="player-input-inner">
+        <div class="player-label">Player 1</div>
+        <input id="p1name" type="text" placeholder="Enter your name" maxlength="14" autocomplete="off">
+      </div>
+    </div>
+    <div class="player-input-wrap p2-wrap">
+      <div class="player-emoji">⭐</div>
+      <div class="player-input-inner">
+        <div class="player-label">Player 2</div>
+        <input id="p2name" type="text" placeholder="Enter your name" maxlength="14" autocomplete="off">
+      </div>
+    </div>
+  </div>
+  <button class="start-btn" onclick="goToJanken()">Next ➡</button>
+</div>
+
+<!-- JANKEN -->
+<div id="janken" class="screen">
+  <div class="janken-heading">
+    最初はだれ？
+    <span>Let's janken! ✊✌️🖐️</span>
+  </div>
+  <div class="janken-hands">
+    <div class="janken-hand"><span class="emoji">✊</span><span class="janken-label">Rock</span></div>
+    <div class="janken-hand"><span class="emoji">✌️</span><span class="janken-label">Scissors</span></div>
+    <div class="janken-hand"><span class="emoji">🖐️</span><span class="janken-label">Paper</span></div>
+  </div>
+  <button class="decided-btn" onclick="goToPicker()">決めたらSTART 🎉</button>
+</div>
+
+<!-- PICKER -->
+<div id="picker" class="screen">
+  <div class="picker-heading">
+    誰が勝ちましたか？
+    <span>Who won janken? Tap your name to go first!</span>
+  </div>
+  <div class="picker-btns">
+    <button class="picker-btn pb1" onclick="pickWinner(1)">🌸 <span id="pickerName1">Player 1</span></button>
+    <button class="picker-btn pb2" onclick="pickWinner(2)">⭐ <span id="pickerName2">Player 2</span></button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen">
+  <div class="score-bar">
+    <div class="player-panel p1-panel" id="p1panel">
+      <div class="panel-left">
+        <div class="panel-name" id="p1display">Player 1</div>
+        <div class="panel-turn" id="p1turn"></div>
+      </div>
+      <div class="panel-score" id="p1score">0</div>
+    </div>
+    <div class="score-middle">
+      <div class="vs-text">VS</div>
+      <div class="pairs-left" id="pairsleft">10 pairs left</div>
+    </div>
+    <div class="player-panel p2-panel" id="p2panel">
+      <div class="panel-score" id="p2score">0</div>
+      <div class="panel-left" style="text-align:right">
+        <div class="panel-name" id="p2display">Player 2</div>
+        <div class="panel-turn" id="p2turn"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="prompt-box">
+    <div class="prompt-question" id="promptQuestion"></div>
+    <div class="prompt-sep">·</div>
+    <div class="prompt-instruction" id="promptInstruction"></div>
+  </div>
+
+  <div class="card-grid" id="cardGrid"></div>
+</div>
+
+<!-- WIN -->
+<div id="win" class="screen">
+  <div class="win-confetti" id="winConfetti">🎉🌈🎉</div>
+
+  <div class="result-panels">
+    <div class="result-panel rp1" id="rp1">
+      <div class="crown-wrap" id="crown1">👑</div>
+      <div class="result-panel-header">
+        <div class="result-player-name" id="rp1name">Player 1</div>
+        <div class="how-many-q">How many pairs?</div>
+      </div>
+      <div class="cards-body"><div class="won-grid" id="wongrid1"></div></div>
+    </div>
+    <div class="result-panel rp2" id="rp2">
+      <div class="crown-wrap" id="crown2">👑</div>
+      <div class="result-panel-header">
+        <div class="result-player-name" id="rp2name">Player 2</div>
+        <div class="how-many-q">How many pairs?</div>
+      </div>
+      <div class="cards-body"><div class="won-grid" id="wongrid2"></div></div>
+    </div>
+  </div>
+
+  <button class="play-again-btn" onclick="resetGame()">Play Again! 🔄</button>
+</div>
+
+<script>
+/* ── AUDIO ── */
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+function resumeAC() { if (AC.state==='suspended') AC.resume(); }
+document.addEventListener('touchstart', resumeAC, {once:true});
+document.addEventListener('click', resumeAC, {once:true});
+
+function playMatch() {
+  [523.25,659.25,783.99].forEach((f,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);o.type='sine';
+    o.frequency.setValueAtTime(f,AC.currentTime+i*0.14);
+    g.gain.setValueAtTime(0,AC.currentTime+i*0.14);
+    g.gain.linearRampToValueAtTime(0.28,AC.currentTime+i*0.14+0.03);
+    g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+i*0.14+0.32);
+    o.start(AC.currentTime+i*0.14);o.stop(AC.currentTime+i*0.14+0.35);
+  });
+}
+function playMiss() {
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.connect(g);g.connect(AC.destination);o.type='sawtooth';
+  o.frequency.setValueAtTime(280,AC.currentTime);
+  o.frequency.exponentialRampToValueAtTime(110,AC.currentTime+0.3);
+  g.gain.setValueAtTime(0.22,AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+0.32);
+  o.start(AC.currentTime);o.stop(AC.currentTime+0.35);
+  const buf=AC.createBuffer(1,AC.sampleRate*0.08,AC.sampleRate);
+  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.15;
+  const s=AC.createBufferSource(),ng=AC.createGain();
+  s.buffer=buf;s.connect(ng);ng.connect(AC.destination);
+  ng.gain.setValueAtTime(0.18,AC.currentTime);
+  ng.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+0.08);
+  s.start(AC.currentTime);
+}
+function playWin() {
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);o.type='triangle';
+    o.frequency.setValueAtTime(f,AC.currentTime+i*0.16);
+    g.gain.setValueAtTime(0,AC.currentTime+i*0.16);
+    g.gain.linearRampToValueAtTime(0.22,AC.currentTime+i*0.16+0.04);
+    g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+i*0.16+0.45);
+    o.start(AC.currentTime+i*0.16);o.stop(AC.currentTime+i*0.16+0.5);
+  });
+}
+
+/* ── DATA ── */
+const COLORS=[
+  {name:'blue',  bg:'#3A86FF',text:'#fff'},
+  {name:'red',   bg:'#FF3A3A',text:'#fff'},
+  {name:'yellow',bg:'#FFD60A',text:'#6a4a00'},
+  {name:'green', bg:'#2DC653',text:'#fff'},
+  {name:'brown', bg:'#8B5E3C',text:'#fff'},
+  {name:'purple',bg:'#8B5CF6',text:'#fff'},
+  {name:'orange',bg:'#FF7F11',text:'#fff'},
+  {name:'pink',  bg:'#FF6EB4',text:'#fff'},
+  {name:'black', bg:'#1a1a1a',text:'#fff'},
+  {name:'white', bg:'#f0f0f0',text:'#333',border:'1.5px solid #ddd'},
+];
+
+let state={
+  p1name:'',p2name:'',
+  p1score:0,p2score:0,
+  p1won:[],p2won:[],
+  currentPlayer:1,
+  cards:[],flipped:[],matched:[],
+  locked:false,phase:'question',totalPairs:10,
+};
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ── FLOW ── */
+function goToJanken(){
+  state.p1name=document.getElementById('p1name').value.trim()||'Player 1';
+  state.p2name=document.getElementById('p2name').value.trim()||'Player 2';
+  resumeAC();showScreen('janken');
+}
+function goToPicker(){
+  document.getElementById('pickerName1').textContent=state.p1name;
+  document.getElementById('pickerName2').textContent=state.p2name;
+  showScreen('picker');
+}
+function pickWinner(player){state.currentPlayer=player;initGame();}
+
+function initGame(){
+  state.p1score=0;state.p2score=0;state.p1won=[];state.p2won=[];
+  state.matched=[];state.flipped=[];state.locked=false;state.phase='question';
+  const deck=[];
+  COLORS.forEach((c,i)=>{deck.push({colorIdx:i,color:c});deck.push({colorIdx:i,color:c});});
+  state.cards=shuffle(deck);
+  showScreen('game');
+  renderScoreBar();renderGrid();renderPrompt();
+}
+
+/* ── RENDER ── */
+function renderScoreBar(){
+  document.getElementById('p1display').textContent=state.p1name;
+  document.getElementById('p2display').textContent=state.p2name;
+  document.getElementById('p1score').textContent=state.p1score;
+  document.getElementById('p2score').textContent=state.p2score;
+  const p1p=document.getElementById('p1panel'),p2p=document.getElementById('p2panel');
+  const p1t=document.getElementById('p1turn'),p2t=document.getElementById('p2turn');
+  if(state.currentPlayer===1){
+    p1p.classList.remove('inactive');p2p.classList.add('inactive');
+    p1t.textContent='▶ Your turn!';p2t.textContent='';
+  } else {
+    p2p.classList.remove('inactive');p1p.classList.add('inactive');
+    p2t.textContent='▶ Your turn!';p1t.textContent='';
+  }
+  const rem=state.totalPairs-state.matched.length/2;
+  document.getElementById('pairsleft').textContent=rem+(rem===1?' pair left':' pairs left');
+}
+
+function renderPrompt(){
+  const cur=state.currentPlayer===1?state.p1name:state.p2name;
+  const other=state.currentPlayer===1?state.p2name:state.p1name;
+  const q=document.getElementById('promptQuestion'),inst=document.getElementById('promptInstruction');
+  if(state.phase==='question'){
+    q.textContent='🎯 '+other+': ask "What color is it?"';
+    inst.textContent=cur+' says "It\'s ___!" then taps';
+  } else {
+    q.textContent='👆 '+cur+': tap a card!';
+    inst.textContent='Say "It\'s ___!" before tapping';
+  }
+}
+
+function renderGrid(){
+  const grid=document.getElementById('cardGrid');grid.innerHTML='';
+  state.cards.forEach((card,idx)=>{
+    const el=document.createElement('div');
+    el.className='card';el.dataset.idx=idx;
+    const isM=state.matched.includes(card.colorIdx),isF=state.flipped.includes(idx);
+    if(isM||isF)el.classList.add('flipped');
+    if(isM)el.classList.add('matched');
+    const c=card.color,brd=c.border?`border:${c.border};`:'';
+    el.innerHTML=`
+      <div class="card-face card-back">
+        <div class="card-back-pattern">🎨</div>
+        <div class="card-back-label">Color?</div>
+      </div>
+      <div class="card-face card-front" style="background:${c.bg};${brd}">
+        <div class="card-color-circle" style="background:${c.bg};${brd}"></div>
+        <div class="card-color-name" style="color:${c.text}">${c.name}</div>
+        <div class="card-check">
+          <div class="card-check-icon">✅</div>
+          <div class="card-check-label">done!</div>
+        </div>
+      </div>`;
+    if(!isM)el.addEventListener('click',()=>onCardClick(idx));
+    grid.appendChild(el);
+  });
+}
+function getCardEl(idx){return document.querySelector(`.card[data-idx="${idx}"]`);}
+
+function onCardClick(idx){
+  if(state.locked)return;
+  if(state.matched.includes(state.cards[idx].colorIdx))return;
+  if(state.flipped.includes(idx))return;
+  state.phase='flip';renderPrompt();
+  state.flipped.push(idx);getCardEl(idx).classList.add('flipped');
+  if(state.flipped.length===2){state.locked=true;checkMatch();}
+}
+
+function checkMatch(){
+  const[a,b]=state.flipped;
+  if(state.cards[a].colorIdx===state.cards[b].colorIdx){
+    playMatch();
+    const cIdx=state.cards[a].colorIdx;
+    state.matched.push(cIdx);
+    if(state.currentPlayer===1){state.p1score++;state.p1won.push(cIdx);}
+    else{state.p2score++;state.p2won.push(cIdx);}
+    [a,b].forEach(i=>getCardEl(i).classList.add('matched','match-pop'));
+    state.flipped=[];state.locked=false;state.phase='question';
+    renderScoreBar();renderPrompt();
+    if(state.matched.length===state.totalPairs)setTimeout(()=>{playWin();showWin();},600);
+  } else {
+    playMiss();
+    setTimeout(()=>{
+      [a,b].forEach(i=>{const el=getCardEl(i);el.classList.add('shake');setTimeout(()=>el.classList.remove('flipped','shake'),430);});
+      state.flipped=[];state.currentPlayer=state.currentPlayer===1?2:1;
+      state.locked=false;state.phase='question';
+      renderScoreBar();renderPrompt();
+    },900);
+  }
+}
+
+/* ── WIN ── */
+function showWin(){
+  showScreen('win');
+  const s1=state.p1score,s2=state.p2score;
+  document.getElementById('winConfetti').textContent=s1>s2?'🌸🎉👑🎉🌸':s2>s1?'⭐🎉👑🎉⭐':'🤝🎉🌈🎉🤝';
+  document.getElementById('rp1name').textContent=state.p1name;
+  document.getElementById('rp2name').textContent=state.p2name;
+  document.getElementById('crown1').classList.toggle('visible',s1>=s2);
+  document.getElementById('crown2').classList.toggle('visible',s2>=s1);
+  buildWonGrid('wongrid1',state.p1won);
+  buildWonGrid('wongrid2',state.p2won);
+}
+
+function buildWonGrid(gridId,wonIdxArr){
+  const grid=document.getElementById(gridId);grid.innerHTML='';
+  if(wonIdxArr.length===0){grid.innerHTML='<div class="no-cards-msg">No pairs! 😅</div>';return;}
+  wonIdxArr.forEach((cIdx,i)=>{
+    const c=COLORS[cIdx],brd=c.border?`border:${c.border};`:'';
+    const card=document.createElement('div');
+    card.className='won-card';card.style.animationDelay=(i*0.06)+'s';
+    card.innerHTML=`<div class="won-circle" style="background:${c.bg};${brd}"></div><div class="won-name">${c.name}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function resetGame(){showScreen('setup');}
+</script>
+</body>
+</html>
